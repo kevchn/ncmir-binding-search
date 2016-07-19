@@ -7,15 +7,17 @@
 
 rule all:
     input:
-        expand('results/tabular/{A}.isomir.tsv', A=SAMPLES),
-        expand('results/text/{A}.mirna.txt', A=SAMPLES)
+        'genome/CDS.no_breaks.fa'
 
-rule get:
+rule remove_fasta_linebreaks:
     input:
-        'Homo_sapiens.GRCh38.cds.all.fa'
+        'genome/Homo_sapiens.GRCh38.cds.all.fa'
     output:
-        'CDS_no_linebreaks.fa'
+        'genome/CDS.no_breaks.fa'
     shell:
         """
-        awk '/^>/{print s? s'\n'$0:$0;s='';next}{s=s sprintf('%s',$0)}END{if(s)print s}' > {output}
+        awk '!/^>/ {{ printf "%s", $0; n = "\\n" }}
+        /^>/ {{ print n $0; n = "" }}
+        END {{ printf "%s", n }}
+        ' {input} > {output}
         """
