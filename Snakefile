@@ -40,14 +40,21 @@ rule get_analysis_of_seqs:
                 # Collate information
                 if "gene_symbol:" in line:
                     num_genes += 1
-                    try:
-                        gene_symbol = line.split("gene_symbol:")[1].split(" description:")[0]
-                    except IndexError:
-                        gene_symbol = "null"
-                    try:
-                        gene_desc = line.split("description:")[1].split(" [")[0]
-                    except IndexError:
-                        gene_desc = "null"
+                    if "description:" in line:
+                        try:
+                            gene_symbol = line.split("gene_symbol:")[1].split(" ")[0]
+                        except IndexError:
+                            gene_symbol = "NONE"
+                        try:
+                            gene_desc = line.split("description:")[1].split(" [")[0]
+                        except IndexError:
+                            gene_desc = "NONE"
+                    else:
+                        gene_desc = "NONE"
+                        try:
+                            gene_symbol = line.split("gene_symbol:")[1].rstrip()
+                        except IndexError:
+                            gene_symbol = "NONE"
                     table_out.append([gene_symbol, gene_desc])
 
                 if "*****END" in line:
