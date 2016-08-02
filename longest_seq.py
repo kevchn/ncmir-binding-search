@@ -6,7 +6,7 @@ prev_geneID = ''
 buffer = []
 
 for record in SeqIO.parse(open(sys.argv[1]), "fasta"):
-    geneID = str(record.description).split(' ')[3][0:]
+    geneID = str(record.description)
 
     if prev_geneID == '':  # first pass
         prev_geneID = geneID
