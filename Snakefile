@@ -11,6 +11,7 @@ Run: snakemake
 import re
 import json
 import pandas as pd
+import csv
 
 ###############################################################################
 
@@ -26,7 +27,7 @@ rule all:
 
 rule get_analysis_of_seqs:
     input:
-        "genome/{A}.no_breaks.canon.motif.fa"
+        "genome/{A}.motif.fa"
     output:
         "output/{A}.found_genes.txt",
         "summary_output/{A}.summary.txt"
@@ -37,46 +38,37 @@ rule get_analysis_of_seqs:
             os.remove(output[1])
         except OSError:
             pass
-        with open(str(input), "rt") as input_file:
+        with open(str(input), 'rt') as input_file:
             table_out = []
             prefix = ""
-            num_genes = 0
             num_genes_per_motif = {}
             for line in input_file:
-                if "*****BEGIN" in line:
+                if '*****BEGIN' in line:
                     prefix = line.split(" ")[1].rstrip()
                     num_genes = 0  # reset
         # SECTION | GET INFO OF FOUND GENES ########################################
-                if "gene_symbol:" in line:
+                if '>' in line:
                     num_genes += 1
-                    if "description:" in line:
-                        try:
-                            gene_symbol = line.split("gene_symbol:")[1].split(" ")[0]
-                        except IndexError:
-                            gene_symbol = "NULL"
-                        try:
-                            gene_desc = line.split("description:")[1].split(" [")[0]
-                        except IndexError:
-                            gene_desc = "NULL"
-                    else:
-                        gene_desc = "no description"
-                        try:
-                            gene_symbol = line.split("gene_symbol:")[1].rstrip()
-                        except IndexError:
-                            gene_symbol = "NULL"
+                    gene_symbol = re.split(r'\t+', line)[0][1:]
+                    try:
+                        gene_desc = re.split(r'\t+', line)[1].rstrip()
+                    except IndexError:
+                        gene_desc = "No Description"
                     table_out.append([gene_symbol, gene_desc])
 
         # SECTION | DISPLAY FOUND GENES FOR EACH SITE ###############################
-                if "*****END" in line:
+                if '*****END' in line:
                     num_genes_per_motif[prefix] = num_genes
                     df = pd.DataFrame(table_out,
-                                      columns=["Gene",
-                                               "Description"])
+                                      columns=['Gene',
+                                               'Description'])
+                    df.sort('Gene')
                     with open(output[0], "a") as out:
                         out.write("============================\n")
                         out.write("Target-site: " + str(prefix) + MOTIF + "\n")
                         out.write("Number-genes: " + str(num_genes) + "\n")
-                        df.to_csv(out, sep='\t', index=False)
+                        df.to_csv(out, sep='\t', index=False, quotechar='', quoting=csv.QUOTE_NONE, escapechar='\\')
+                    table_out = [] #clear list
         # SECTION | CALCULATING SUMMARY STATISTICS ##################################
             total_genes = sum(num_genes_per_motif.values())
         # SECTION | DISPLAY SUMMARY OF FOUND GENE STATS #############################
@@ -92,13 +84,12 @@ rule get_seqs_with_motif:
     params:
         motif = MOTIF
     output:
-        "genome/{A}.no_breaks.canon.motif.fa"
+        "genome/{A}.motif.fa"
     shell:
         """
         for prefix in $(eval echo {{A,C,T,G}}{{A,C,T,G}}); do
             echo "*****BEGIN ${{prefix}}" >> {output}
-            grep -i -B 1 "${{prefix}}{params}" {input} >> {output}
+            grep -i -B 1 "${{prefix}}{params}" {input} | sed '/^--$/d' >> {output}
             echo "*****END" >> {output}
         done
         """
-

@@ -11,6 +11,6 @@ args = parser.parse_args()
 with open(args.fasta, 'r') as fasta_records:
     for line in fasta_records:
         if '>' not in line:
-            print(line.rstrip())
+            print(line.rstrip('\n').lower(), end="")
         else:
-            print(line)
+            print("\n" + line, end="")
