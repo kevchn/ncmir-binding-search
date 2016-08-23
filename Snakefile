@@ -40,6 +40,7 @@ rule get_analysis_of_seqs:
             pass
         with open(str(input), 'rt') as input_file:
             table_out = []
+            table_summary = []
             prefix = ""
             num_genes_per_motif = {}
             for line in input_file:
@@ -62,7 +63,7 @@ rule get_analysis_of_seqs:
                     df = pd.DataFrame(table_out,
                                       columns=['Gene',
                                                'Description'])
-                    df.sort('Gene')
+                    df.sort_values('Gene', inplace=True)
                     with open(output[0], "a") as out:
                         out.write("============================\n")
                         out.write("Target-site: " + str(prefix) + MOTIF + "\n")
@@ -71,12 +72,17 @@ rule get_analysis_of_seqs:
                     table_out = [] #clear list
         # SECTION | CALCULATING SUMMARY STATISTICS ##################################
             total_genes = sum(num_genes_per_motif.values())
+            for k, v in num_genes_per_motif.items():
+                percent = round(v / total_genes, 4)
+                table_summary.append([k + MOTIF, v, percent])
         # SECTION | DISPLAY SUMMARY OF FOUND GENE STATS #############################
-            with open(output[1], "w") as out:
-                out.write("Target-site\tNumber-genes\tPercentage\n")
-                for k, v in num_genes_per_motif.items():
-                    percent = round(v / total_genes, 4)
-                    out.write(k + MOTIF + "\t" + str(v) + "\t" + str(percent) + "\n")
+        df = pd.DataFrame(table_summary,
+                          columns=['Motif',
+                                   'Number-genes',
+                                   'Percent'])
+        df.sort_values('Percent', inplace=True, ascending=False)
+        with open(output[1], "w") as out:
+            df.to_csv(out, sep='\t', index=False, quotechar='', quoting=csv.QUOTE_NONE, escapechar='\\')
 
 rule get_seqs_with_motif:
     input:
